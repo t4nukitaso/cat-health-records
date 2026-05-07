@@ -1,0 +1,83 @@
+.iphone-calendar {
+  width: 100%;
+  border: none;
+  background: white;
+  font-family: sans-serif;
+}
+
+.iphone-calendar .react-calendar__navigation {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.iphone-calendar
+  .react-calendar__navigation button {
+  min-width: 44px;
+  border: none;
+  background: #f3f4f6;
+  border-radius: 16px;
+  font-size: 18px;
+  padding: 10px;
+  transition: 0.2s;
+}
+
+.iphone-calendar
+  .react-calendar__navigation button:active {
+  transform: scale(0.95);
+}
+
+.iphone-calendar
+  .react-calendar__month-view__weekdays {
+  margin-bottom: 12px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+  color: #6b7280;
+}
+
+.iphone-calendar
+  .react-calendar__month-view__weekdays__weekday {
+  padding: 8px 0;
+}
+
+.iphone-calendar
+  .react-calendar__tile {
+  position: relative;
+  border: none;
+  border-radius: 24px;
+  height: 110px;
+  padding-top: 10px;
+  transition: all 0.2s;
+  overflow: hidden;
+}
+
+.iphone-calendar
+  .react-calendar__tile:active {
+  transform: scale(0.96);
+}
+
+.iphone-calendar
+  .react-calendar__tile:hover {
+  background: #f3f4f6;
+}
+
+.today-tile {
+  background: #dbeafe !important;
+  font-weight: bold;
+}
+
+.record-tile {
+  background: #fdf2f8;
+}
+
+.iphone-calendar
+  .react-calendar__tile--active {
+  background: #ec4899 !important;
+  color: white;
+}
+
+.iphone-calendar
+  .react-calendar__month-view__days__day--neighboringMonth {
+  opacity: 0.3;
+}
