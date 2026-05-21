@@ -1,8 +1,15 @@
-import { useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import { Link } from "react-router-dom";
 
-import type { RecordItem } from "../types";
+import type {
+  DailyNote,
+  RecordItem,
+} from "../types";
 
 import {
   getRelativeTime,
@@ -12,6 +19,8 @@ import {
 type Props = {
   records: RecordItem[];
 
+  dailyNotes: DailyNote[];
+
   addRecord: (
     record: RecordItem
   ) => Promise<void>;
@@ -19,12 +28,19 @@ type Props = {
   deleteRecord: (
     firebaseId: string
   ) => Promise<void>;
+
+  saveDailyNote: (
+    date: string,
+    note: string
+  ) => Promise<void>;
 };
 
 function HomeScreen({
   records,
+  dailyNotes,
   addRecord,
   deleteRecord,
+  saveDailyNote,
 }: Props) {
   const [showFoodSelect, setShowFoodSelect] =
     useState(false);
@@ -44,77 +60,173 @@ function HomeScreen({
   const [weightInput, setWeightInput] =
     useState("");
 
+  const [noteInput, setNoteInput] =
+    useState("");
+
   function createNowISO() {
     return new Date().toISOString();
   }
 
+  function getTodayDate() {
+    const now = new Date();
+
+    const year =
+      now.getFullYear();
+
+    const month = String(
+      now.getMonth() + 1
+    ).padStart(2, "0");
+
+    const day = String(
+      now.getDate()
+    ).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
+
+  useEffect(() => {
+    const today =
+      getTodayDate();
+
+    const existingNote =
+      dailyNotes.find(
+        (note) =>
+          note.date === today
+      );
+
+    setNoteInput(
+      existingNote?.note || ""
+    );
+  }, [dailyNotes]);
+
   async function addFood(
     amount: number
   ) {
-    await addRecord({
-      id: Date.now(),
-      type: "food",
-      amount,
-      createdAt: createNowISO(),
-    });
+    try {
+      await addRecord({
+        id: Date.now(),
+        type: "food",
+        amount,
+        createdAt: createNowISO(),
+      });
 
-    setShowFoodSelect(false);
+      setShowFoodSelect(false);
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async function addSnack(
     amount: number
   ) {
-    await addRecord({
-      id: Date.now(),
-      type: "snack",
-      amount,
-      snackType: selectedSnack,
-      customSnackName:
-        selectedSnack === "その他"
-          ? customSnackName
-          : undefined,
-      createdAt: createNowISO(),
-    });
+    try {
+      if (
+        selectedSnack === "その他" &&
+        !customSnackName.trim()
+      ) {
+        alert(
+          "おやつ名を入力してください"
+        );
 
-    setShowSnackSelect(false);
+        return;
+      }
 
-    setCustomSnackName("");
+      const newRecord: RecordItem = {
+        id: Date.now(),
+
+        type: "snack",
+        amount: Number(amount),
+        snackType: selectedSnack,
+
+        customSnackName:
+          selectedSnack === "その他"
+            ? customSnackName.trim()
+            : "",
+
+        createdAt: createNowISO(),
+      };
+
+      console.log(
+        "snack record",
+        newRecord
+      );
+
+      await addRecord(newRecord);
+
+      setSelectedSnack("ちゅーる");
+
+      setCustomSnackName("");
+
+      setShowSnackSelect(false);
+    } catch (error) {
+      console.error(
+        "おやつ保存エラー",
+        error
+      );
+    }
   }
 
   async function addPoop() {
-    await addRecord({
-      id: Date.now(),
-      type: "poop",
-      createdAt: createNowISO(),
-    });
+    try {
+      await addRecord({
+        id: Date.now(),
+        type: "poop",
+        createdAt: createNowISO(),
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async function addWeight() {
-    if (!weightInput) return;
+    try {
+      if (!weightInput) return;
 
-    await addRecord({
-      id: Date.now(),
-      type: "weight",
-      weight: Number(weightInput),
-      createdAt: createNowISO(),
-    });
+      await addRecord({
+        id: Date.now(),
+        type: "weight",
+        weight: Number(weightInput),
+        createdAt: createNowISO(),
+      });
 
-    setWeightInput("");
+      setWeightInput("");
 
-    setShowWeightInput(false);
+      setShowWeightInput(false);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function saveNote() {
+    try {
+      await saveDailyNote(
+        getTodayDate(),
+        noteInput
+      );
+
+      alert(
+        "メモを保存しました"
+      );
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   async function undoLastRecord() {
-    if (
-      records.length === 0 ||
-      !records[0].firebaseId
-    ) {
-      return;
-    }
+    try {
+      if (
+        records.length === 0 ||
+        !records[0].firebaseId
+      ) {
+        return;
+      }
 
-    await deleteRecord(
-      records[0].firebaseId
-    );
+      await deleteRecord(
+        records[0].firebaseId
+      );
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   const todayRecords = records.filter((r) =>
@@ -160,45 +272,45 @@ function HomeScreen({
   );
 
   return (
-    <div className="min-h-screen bg-gray-100 p-4">
-      <div className="mx-auto max-w-sm rounded-3xl bg-white p-6 shadow-xl">
+    <div className="min-h-screen bg-gray-100 p-5">
+      <div className="mx-auto max-w-md rounded-[40px] bg-white p-7 shadow-2xl">
         <div className="flex items-center justify-between">
           <Link
             to="/calendar"
-            className="rounded-2xl bg-gray-200 px-4 py-2 active:scale-95"
+            className="rounded-3xl bg-gray-200 px-6 py-4 text-lg font-bold active:scale-95"
           >
             カレンダー
           </Link>
 
-          <h1 className="text-5xl">🐈</h1>
+          <h1 className="text-6xl">🐈</h1>
 
-          <div className="w-[100px]" />
+          <div className="w-[120px]" />
         </div>
 
-        <p className="mt-4 text-center text-sm text-gray-500">
+        <p className="mt-5 text-center text-base text-gray-500">
           {new Date().toLocaleString(
             "ja-JP"
           )}
         </p>
 
-        <div className="mt-6 rounded-3xl bg-gray-100 p-5">
-          <div className="space-y-3">
-            <p className="text-lg font-bold">
+        <div className="mt-7 rounded-3xl bg-gray-100 p-6">
+          <div className="space-y-4">
+            <p className="text-xl font-bold">
               今日のごはん🥩：
               {foodTotal}
             </p>
 
-            <p className="text-lg font-bold">
+            <p className="text-xl font-bold">
               今日のおやつ🍦：
               {snackTotal}
             </p>
 
-            <p className="text-lg font-bold">
+            <p className="text-xl font-bold">
               今日のうんち💩：
               {poopCount}回
             </p>
 
-            <p className="text-lg font-bold">
+            <p className="text-xl font-bold">
               今日の体重⚖️：
               {latestWeight?.weight ??
                 "--"}
@@ -206,7 +318,7 @@ function HomeScreen({
             </p>
           </div>
 
-          <div className="mt-5 text-sm text-gray-500">
+          <div className="mt-6 space-y-2 text-base text-gray-500">
             <p>
               最後のごはん🥩：
               {lastFood
@@ -227,7 +339,7 @@ function HomeScreen({
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-4 gap-2">
+        <div className="mt-7 grid grid-cols-2 gap-4">
           <button
             onClick={() => {
               setShowFoodSelect(
@@ -238,7 +350,7 @@ function HomeScreen({
 
               setShowWeightInput(false);
             }}
-            className="rounded-2xl bg-blue-500 p-4 text-white shadow-md active:scale-95"
+            className="rounded-3xl bg-blue-500 p-7 text-2xl font-bold text-white shadow-lg active:scale-95"
           >
             ごはん
           </button>
@@ -253,14 +365,14 @@ function HomeScreen({
 
               setShowWeightInput(false);
             }}
-            className="rounded-2xl bg-pink-500 p-4 text-white shadow-md active:scale-95"
+            className="rounded-3xl bg-pink-500 p-7 text-2xl font-bold text-white shadow-lg active:scale-95"
           >
             おやつ
           </button>
 
           <button
             onClick={addPoop}
-            className="rounded-2xl bg-green-500 p-4 text-white shadow-md active:scale-95"
+            className="rounded-3xl bg-green-500 p-7 text-2xl font-bold text-white shadow-lg active:scale-95"
           >
             うんち
           </button>
@@ -275,7 +387,7 @@ function HomeScreen({
 
               setShowSnackSelect(false);
             }}
-            className="rounded-2xl bg-yellow-500 p-4 text-white shadow-md active:scale-95"
+            className="rounded-3xl bg-yellow-500 p-7 text-2xl font-bold text-white shadow-lg active:scale-95"
           >
             体重
           </button>
@@ -283,18 +395,18 @@ function HomeScreen({
 
         <button
           onClick={undoLastRecord}
-          className="mt-6 w-full rounded-2xl bg-gray-200 p-4 text-gray-700 active:scale-95"
+          className="mt-7 w-full rounded-3xl bg-gray-200 p-6 text-xl font-bold text-gray-700 shadow-md active:scale-95"
         >
           取り消し
         </button>
 
         {showFoodSelect && (
-          <div className="mt-4 rounded-3xl bg-gray-100 p-4">
-            <h2 className="font-bold">
+          <div className="mt-5 rounded-3xl bg-gray-100 p-5">
+            <h2 className="text-xl font-bold">
               ごはん量選択
             </h2>
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
+            <div className="mt-5 grid grid-cols-2 gap-3">
               {[0.5, 1, 1.5, 2].map(
                 (amount) => (
                   <button
@@ -302,7 +414,7 @@ function HomeScreen({
                     onClick={() =>
                       addFood(amount)
                     }
-                    className="rounded-2xl bg-blue-500 p-4 text-white active:scale-95"
+                    className="rounded-3xl bg-blue-500 p-7 text-3xl font-bold text-white shadow-md active:scale-95"
                   >
                     {amount}
                   </button>
@@ -313,12 +425,12 @@ function HomeScreen({
         )}
 
         {showSnackSelect && (
-          <div className="mt-4 rounded-3xl bg-gray-100 p-4">
-            <h2 className="font-bold">
+          <div className="mt-5 rounded-3xl bg-gray-100 p-5">
+            <h2 className="text-xl font-bold">
               おやつ選択
             </h2>
 
-            <div className="mt-4 space-y-2">
+            <div className="mt-5 space-y-3">
               {[
                 "ちゅーる",
                 "ぽんちゅーる",
@@ -331,9 +443,9 @@ function HomeScreen({
                       snack
                     )
                   }
-                  className={`w-full rounded-2xl p-4 text-white active:scale-95 ${
+                  className={`w-full rounded-3xl p-6 text-2xl font-bold text-white shadow-md active:scale-95 ${
                     selectedSnack === snack
-                      ? "bg-pink-600"
+                      ? "bg-pink-700"
                       : "bg-pink-400"
                   }`}
                 >
@@ -352,33 +464,43 @@ function HomeScreen({
                     e.target.value
                   )
                 }
-                className="mt-4 w-full rounded-2xl border p-4"
+                className="mt-5 w-full rounded-3xl border p-5 text-xl"
               />
             )}
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              {[0.5, 1].map((amount) => (
-                <button
-                  key={amount}
-                  onClick={() =>
-                    addSnack(amount)
-                  }
-                  className="rounded-2xl bg-pink-500 p-4 text-white active:scale-95"
-                >
-                  {amount}
-                </button>
-              ))}
+            <div className="mt-5">
+              <p className="mb-3 text-xl font-bold">
+                数量選択
+              </p>
+
+              <div className="grid grid-cols-2 gap-3">
+                {[0.5, 1].map(
+                  (amount) => (
+                    <button
+                      key={amount}
+                      onClick={() =>
+                        addSnack(
+                          amount
+                        )
+                      }
+                      className="rounded-3xl bg-pink-500 p-7 text-3xl font-bold text-white shadow-md active:scale-95"
+                    >
+                      {amount}
+                    </button>
+                  )
+                )}
+              </div>
             </div>
           </div>
         )}
 
         {showWeightInput && (
-          <div className="mt-4 rounded-3xl bg-gray-100 p-4">
-            <h2 className="font-bold">
+          <div className="mt-5 rounded-3xl bg-gray-100 p-5">
+            <h2 className="text-xl font-bold">
               体重入力
             </h2>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-5 flex gap-3">
               <input
                 type="number"
                 step="0.1"
@@ -389,12 +511,12 @@ function HomeScreen({
                     e.target.value
                   )
                 }
-                className="w-full rounded-2xl border p-4"
+                className="w-full rounded-3xl border p-5 text-xl"
               />
 
               <button
                 onClick={addWeight}
-                className="rounded-2xl bg-yellow-500 px-5 text-white active:scale-95"
+                className="rounded-3xl bg-yellow-500 px-6 text-lg font-bold text-white shadow-md active:scale-95"
               >
                 記録
               </button>
@@ -402,15 +524,39 @@ function HomeScreen({
           </div>
         )}
 
+        <div className="mt-7 rounded-3xl bg-gray-100 p-5">
+          <h2 className="text-xl font-bold">
+            今日のメモ📝
+          </h2>
+
+          <textarea
+            value={noteInput}
+            onChange={(e) =>
+              setNoteInput(
+                e.target.value
+              )
+            }
+            placeholder="今日の様子や気になることを記録"
+            className="mt-4 h-40 w-full resize-none rounded-3xl border p-5 text-lg"
+          />
+
+          <button
+            onClick={saveNote}
+            className="mt-4 w-full rounded-3xl bg-gray-800 p-5 text-xl font-bold text-white active:scale-95"
+          >
+            メモ保存
+          </button>
+        </div>
+
         <div className="mt-10">
-          <h2 className="mb-4 text-lg font-bold">
+          <h2 className="mb-5 text-xl font-bold">
             今日の記録
           </h2>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             {todayRecords.length ===
               0 && (
-              <div className="rounded-2xl bg-gray-100 p-4 text-center text-gray-500">
+              <div className="rounded-3xl bg-gray-100 p-5 text-center text-gray-500">
                 まだ記録がありません
               </div>
             )}
@@ -433,11 +579,11 @@ function HomeScreen({
                 return (
                   <div
                     key={record.id}
-                    className="rounded-3xl bg-gray-100 p-4 shadow-sm"
+                    className="rounded-3xl bg-gray-100 p-5 shadow-sm"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between gap-3">
                       <div>
-                        <p className="font-bold">
+                        <p className="text-lg font-bold">
                           {record.type ===
                             "food" &&
                             `🥩 ごはん ${record.amount}`}
@@ -445,8 +591,10 @@ function HomeScreen({
                           {record.type ===
                             "snack" &&
                             `🍦 ${
-                              record.customSnackName ||
-                              record.snackType
+                              record.snackType ===
+                              "その他"
+                                ? record.customSnackName
+                                : record.snackType
                             } ${
                               record.amount
                             }`}
@@ -460,7 +608,7 @@ function HomeScreen({
                             `⚖️ ${record.weight}kg`}
                         </p>
 
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-2 text-base text-gray-500">
                           {time}
                         </p>
                       </div>
@@ -472,7 +620,7 @@ function HomeScreen({
                               record.firebaseId!
                             )
                           }
-                          className="rounded-xl bg-red-500 px-3 py-2 text-sm text-white active:scale-95"
+                          className="rounded-2xl bg-red-500 px-5 py-3 text-base font-bold text-white shadow-md active:scale-95"
                         >
                           削除
                         </button>

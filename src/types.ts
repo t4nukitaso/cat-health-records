@@ -19,3 +19,11 @@ export type RecordItem = {
 
   createdAt: string;
 };
+
+export type DailyNote = {
+  firebaseId?: string;
+
+  date: string;
+
+  note: string;
+};

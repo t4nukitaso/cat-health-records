@@ -155,8 +155,7 @@ function DayDetailScreen({
   }
 
   function handleTouchStart(
-    e: React.TouchEvent,
-    id: number
+    e: React.TouchEvent
   ) {
     touchStartX.current =
       e.touches[0].clientX;
@@ -272,10 +271,7 @@ function DayDetailScreen({
 
                   <div
                     onTouchStart={(e) =>
-                      handleTouchStart(
-                        e,
-                        record.id
-                      )
+                      handleTouchStart(e)
                     }
                     onTouchEnd={(e) =>
                       handleTouchEnd(
