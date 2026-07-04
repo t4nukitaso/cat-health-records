@@ -148,6 +148,7 @@ textarea:focus {
 .max-w-sm,
 .max-w-md {
   width: min(100%, 430px);
+  max-width: none;
 }
 
 .memo-button-add {
@@ -256,6 +257,7 @@ textarea:focus {
   .max-w-sm,
   .max-w-md {
     width: min(100%, 560px);
+    max-width: none;
   }
 
   .min-h-screen {
@@ -267,11 +269,49 @@ textarea:focus {
   .max-w-sm,
   .max-w-md {
     width: min(100%, 640px);
+    max-width: none;
   }
 
   .min-h-screen {
     padding: 48px 32px;
   }
+}
+
+body[data-device="tablet"] .max-w-sm,
+body[data-device="tablet"] .max-w-md {
+  width: min(100%, 680px);
+  max-width: none;
+}
+
+body[data-device="desktop"] .max-w-sm,
+body[data-device="desktop"] .max-w-md {
+  width: min(100%, 860px);
+  max-width: none;
+}
+
+body[data-device="desktop"] .min-h-screen {
+  padding: 56px 44px;
+}
+
+body[data-device="desktop"] .grid-cols-2 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body[data-device="desktop"] .grid-cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body[data-device="desktop"] .text-6xl {
+  font-size: 4.5rem;
+}
+
+body[data-device="desktop"] .memo-input-modal {
+  width: min(100%, 560px);
+}
+
+body[data-platform="windows"] {
+  font-family: "Segoe UI Variable", "Segoe UI", -apple-system,
+    BlinkMacSystemFont, "SF Pro Text", "Yu Gothic", sans-serif;
 }
 
 @media (max-width: 430px) {

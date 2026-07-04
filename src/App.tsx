@@ -44,6 +44,69 @@ function App() {
     useState<DailyNote[]>([]);
 
   useEffect(() => {
+    function updateDeviceLayout() {
+      const width =
+        window.innerWidth;
+
+      const hasCoarsePointer =
+        window.matchMedia(
+          "(pointer: coarse)"
+        ).matches;
+
+      const userAgent =
+        navigator.userAgent.toLowerCase();
+
+      const platform =
+        userAgent.includes("windows")
+          ? "windows"
+          : userAgent.includes("mac")
+            ? "mac"
+            : userAgent.includes("ipad")
+              ? "ipad"
+              : userAgent.includes("iphone")
+                ? "iphone"
+                : "other";
+
+      const device =
+        width >= 1024 && !hasCoarsePointer
+          ? "desktop"
+          : width >= 700
+            ? "tablet"
+            : "phone";
+
+      document.body.dataset.device =
+        device;
+
+      document.body.dataset.platform =
+        platform;
+    }
+
+    updateDeviceLayout();
+
+    window.addEventListener(
+      "resize",
+      updateDeviceLayout
+    );
+
+    window.addEventListener(
+      "orientationchange",
+      updateDeviceLayout
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        updateDeviceLayout
+      );
+
+      window.removeEventListener(
+        "orientationchange",
+        updateDeviceLayout
+      );
+    };
+  }, []);
+
+  useEffect(() => {
     const unsubscribe =
       onSnapshot(
         collection(db, "records"),
