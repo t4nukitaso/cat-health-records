@@ -76,13 +76,10 @@ function HomeScreen({
   const [currentEditingNote, setCurrentEditingNote] =
     useState("");
 
-  
-
-  function getTodayDate() {
+  const todayDate = useMemo(() => {
     const now = new Date();
 
-    const year =
-      now.getFullYear();
+    const year = now.getFullYear();
 
     const month = String(
       now.getMonth() + 1
@@ -93,24 +90,24 @@ function HomeScreen({
     ).padStart(2, "0");
 
     return `${year}-${month}-${day}`;
-  }
+  }, []);
 
   useEffect(() => {
-    const today =
-      getTodayDate();
-
     const existingNote =
       dailyNotes.find(
         (note) =>
-          note.date === today
+          note.date === todayDate
       );
 
     setNoteInput(
       existingNote?.note || ""
     );
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCurrentEditingNote(existingNote?.note || "");
-  }, [dailyNotes, getTodayDate]);
+    if (!showNoteInput) {
+      setCurrentEditingNote(
+        existingNote?.note || ""
+      );
+    }
+  }, [dailyNotes, showNoteInput, todayDate]);
 
   
 
@@ -342,7 +339,7 @@ function HomeScreen({
                     </button>
                     <button
                       onClick={async () => {
-                        await saveDailyNote(getTodayDate(), currentEditingNote);
+                        await saveDailyNote(todayDate, currentEditingNote);
                         setNoteInput(currentEditingNote); // Update displayed note
                         setShowNoteInput(false);
                       }}
