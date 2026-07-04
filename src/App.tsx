@@ -98,10 +98,16 @@ function App() {
   async function addRecord(
     record: RecordItem
   ) {
-    await addDoc(
-      collection(db, "records"),
-      record
-    );
+    console.log("Attempting to add record:", record);
+    try {
+      const docRef = await addDoc(
+        collection(db, "records"),
+        record
+      );
+      console.log("Record added with ID:", docRef.id);
+    } catch (error) {
+      console.error("Error adding record:", error);
+    }
   }
 
   async function deleteRecord(
@@ -216,6 +222,9 @@ function App() {
               }
               editRecord={
                 editRecord
+              }
+              saveDailyNote={
+                saveDailyNote
               }
             />
           }

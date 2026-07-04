@@ -14,7 +14,12 @@ import type {
 import {
   getRelativeTime,
   isToday,
+  createNowISO,
 } from "../utils";
+
+function createRecordId() {
+  return Date.now();
+}
 
 type Props = {
   records: RecordItem[];
@@ -54,6 +59,8 @@ function HomeScreen({
   const [selectedSnack, setSelectedSnack] =
     useState("ちゅーる");
 
+  const [selectedSnackAmount, setSelectedSnackAmount] = useState<number | null>(null);
+
   const [customSnackName, setCustomSnackName] =
     useState("");
 
@@ -63,9 +70,13 @@ function HomeScreen({
   const [noteInput, setNoteInput] =
     useState("");
 
-  function createNowISO() {
-    return new Date().toISOString();
-  }
+  const [showNoteInput, setShowNoteInput] =
+    useState(false);
+
+  const [currentEditingNote, setCurrentEditingNote] =
+    useState("");
+
+  
 
   function getTodayDate() {
     const now = new Date();
@@ -97,14 +108,32 @@ function HomeScreen({
     setNoteInput(
       existingNote?.note || ""
     );
-  }, [dailyNotes]);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCurrentEditingNote(existingNote?.note || "");
+  }, [dailyNotes, getTodayDate]);
+
+  
+
+  const todayRecords = records.filter((r) =>
+    isToday(r.createdAt)
+  );
+
+  const foodTotal = useMemo(() => {
+    return todayRecords
+      .filter((r) => r.type === "food")
+      .reduce(
+        (sum, r) =>
+          sum + (r.amount || 0),
+        0
+      );
+  }, [todayRecords]);
 
   async function addFood(
     amount: number
   ) {
     try {
       await addRecord({
-        id: Date.now(),
+        id: createRecordId(),
         type: "food",
         amount,
         createdAt: createNowISO(),
@@ -116,10 +145,12 @@ function HomeScreen({
     }
   }
 
-  async function addSnack(
-    amount: number
-  ) {
+  async function addSnack() {
     try {
+      if (selectedSnackAmount === null) {
+        alert("数量を選択してください");
+        return;
+      }
       if (
         selectedSnack === "その他" &&
         !customSnackName.trim()
@@ -132,10 +163,10 @@ function HomeScreen({
       }
 
       const newRecord: RecordItem = {
-        id: Date.now(),
+        id: createRecordId(),
 
         type: "snack",
-        amount: Number(amount),
+        amount: selectedSnackAmount,
         snackType: selectedSnack,
 
         customSnackName:
@@ -157,6 +188,8 @@ function HomeScreen({
 
       setCustomSnackName("");
 
+      setSelectedSnackAmount(null);
+
       setShowSnackSelect(false);
     } catch (error) {
       console.error(
@@ -169,7 +202,7 @@ function HomeScreen({
   async function addPoop() {
     try {
       await addRecord({
-        id: Date.now(),
+        id: createRecordId(),
         type: "poop",
         createdAt: createNowISO(),
       });
@@ -180,68 +213,27 @@ function HomeScreen({
 
   async function addWeight() {
     try {
-      if (!weightInput) return;
-
-      await addRecord({
-        id: Date.now(),
-        type: "weight",
-        weight: Number(weightInput),
-        createdAt: createNowISO(),
-      });
-
-      setWeightInput("");
-
-      setShowWeightInput(false);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  async function saveNote() {
-    try {
-      await saveDailyNote(
-        getTodayDate(),
-        noteInput
-      );
-
-      alert(
-        "メモを保存しました"
-      );
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
-  async function undoLastRecord() {
-    try {
-      if (
-        records.length === 0 ||
-        !records[0].firebaseId
-      ) {
+      if (!weightInput) {
+        alert("体重を入力してください");
         return;
       }
-
-      await deleteRecord(
-        records[0].firebaseId
-      );
+      const weight = parseFloat(weightInput);
+      if (isNaN(weight) || weight <= 0) {
+        alert("有効な体重を入力してください");
+        return;
+      }
+      await addRecord({
+        id: createRecordId(),
+        type: "weight",
+        weight: weight,
+        createdAt: createNowISO(),
+      });
+      setWeightInput("");
+      setShowWeightInput(false);
     } catch (error) {
-      console.error(error);
+      console.error("体重保存エラー", error);
     }
   }
-
-  const todayRecords = records.filter((r) =>
-    isToday(r.createdAt)
-  );
-
-  const foodTotal = useMemo(() => {
-    return todayRecords
-      .filter((r) => r.type === "food")
-      .reduce(
-        (sum, r) =>
-          sum + (r.amount || 0),
-        0
-      );
-  }, [todayRecords]);
 
   const snackTotal = useMemo(() => {
     return todayRecords
@@ -316,6 +308,52 @@ function HomeScreen({
                 "--"}
               kg
             </p>
+          </div>
+
+          <div className="mt-6">
+            <p className="text-xl font-bold">
+              今日のメモ📝：
+            </p>
+            {!showNoteInput ? (
+              <div className="memo-display" onClick={() => {
+                setShowNoteInput(true);
+                setCurrentEditingNote(noteInput);
+              }}>
+                {noteInput || 'メモを追加'}
+              </div>
+            ) : (
+              <div className="memo-input-overlay">
+                <div className="memo-input-modal">
+                  <textarea
+                    value={currentEditingNote}
+                    onChange={(e) => setCurrentEditingNote(e.target.value)}
+                    placeholder="今日の様子や気になることを記録"
+                    className="memo-textarea-modal"
+                  />
+                  <div className="memo-modal-actions">
+                    <button
+                      onClick={() => {
+                        setShowNoteInput(false);
+                        setCurrentEditingNote(noteInput); // Revert changes
+                      }}
+                      className="memo-modal-button cancel"
+                    >
+                      キャンセル
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await saveDailyNote(getTodayDate(), currentEditingNote);
+                        setNoteInput(currentEditingNote); // Update displayed note
+                        setShowNoteInput(false);
+                      }}
+                      className="memo-modal-button save"
+                    >
+                      保存
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-6 space-y-2 text-base text-gray-500">
@@ -393,13 +431,6 @@ function HomeScreen({
           </button>
         </div>
 
-        <button
-          onClick={undoLastRecord}
-          className="mt-7 w-full rounded-3xl bg-gray-200 p-6 text-xl font-bold text-gray-700 shadow-md active:scale-95"
-        >
-          取り消し
-        </button>
-
         {showFoodSelect && (
           <div className="mt-5 rounded-3xl bg-gray-100 p-5">
             <h2 className="text-xl font-bold">
@@ -427,70 +458,66 @@ function HomeScreen({
         {showSnackSelect && (
           <div className="mt-5 rounded-3xl bg-gray-100 p-5">
             <h2 className="text-xl font-bold">
-              おやつ選択
+              おやつ数量選択
             </h2>
 
-            <div className="mt-5 space-y-3">
-              {[
-                "ちゅーる",
-                "ぽんちゅーる",
-                "その他",
-              ].map((snack) => (
+            <div className="mt-5 grid grid-cols-2 gap-3">
+              {[0.5, 1].map((amount) => (
                 <button
-                  key={snack}
-                  onClick={() =>
-                    setSelectedSnack(
-                      snack
-                    )
-                  }
-                  className={`w-full rounded-3xl p-6 text-2xl font-bold text-white shadow-md active:scale-95 ${
-                    selectedSnack === snack
+                  key={amount}
+                  onClick={() => setSelectedSnackAmount(amount)}
+                  className={`rounded-3xl p-7 text-3xl font-bold text-white shadow-md active:scale-95 ${
+                    selectedSnackAmount === amount
                       ? "bg-pink-700"
                       : "bg-pink-400"
                   }`}
                 >
-                  {snack}
+                  {amount}
                 </button>
               ))}
             </div>
 
-            {selectedSnack === "その他" && (
-              <input
-                type="text"
-                placeholder="おやつ名入力"
-                value={customSnackName}
-                onChange={(e) =>
-                  setCustomSnackName(
-                    e.target.value
-                  )
-                }
-                className="mt-5 w-full rounded-3xl border p-5 text-xl"
-              />
-            )}
-
-            <div className="mt-5">
-              <p className="mb-3 text-xl font-bold">
-                数量選択
-              </p>
-
-              <div className="grid grid-cols-2 gap-3">
-                {[0.5, 1].map(
-                  (amount) => (
+            {selectedSnackAmount !== null && (
+              <>
+                <h2 className="mt-5 text-xl font-bold">
+                  おやつ種類選択
+                </h2>
+                <div className="mt-5 space-y-3">
+                  {["ちゅーる", "ぽんちゅーる", "その他"].map((snack) => (
                     <button
-                      key={amount}
-                      onClick={() =>
-                        addSnack(
-                          amount
-                        )
-                      }
-                      className="rounded-3xl bg-pink-500 p-7 text-3xl font-bold text-white shadow-md active:scale-95"
+                      key={snack}
+                      onClick={() => setSelectedSnack(snack)}
+                      className={`w-full rounded-3xl p-6 text-2xl font-bold text-white shadow-md active:scale-95 ${
+                        selectedSnack === snack ? "bg-pink-700" : "bg-pink-400"
+                      }`}
                     >
-                      {amount}
+                      {snack}
                     </button>
-                  )
+                  ))}
+                </div>
+
+                {selectedSnack === "その他" && (
+                  <input
+                    type="text"
+                    value={customSnackName}
+                    onChange={(e) => setCustomSnackName(e.target.value)}
+                    placeholder="おやつ名を入力"
+                    className="mt-3 w-full rounded-3xl border p-5 text-xl"
+                  />
                 )}
-              </div>
-            </div>
+
+                <button
+                  onClick={addSnack}
+                  className="mt-5 w-full rounded-3xl bg-pink-500 p-5 text-xl font-bold text-white shadow-md active:scale-95"
+                  disabled={
+                    selectedSnackAmount === null ||
+                    (selectedSnack === "その他" && !customSnackName.trim())
+                  }
+                >
+                  記録
+                </button>
+              </>
+            )}
           </div>
         )}
 
@@ -526,30 +553,6 @@ function HomeScreen({
 
         <div className="mt-7 rounded-3xl bg-gray-100 p-5">
           <h2 className="text-xl font-bold">
-            今日のメモ📝
-          </h2>
-
-          <textarea
-            value={noteInput}
-            onChange={(e) =>
-              setNoteInput(
-                e.target.value
-              )
-            }
-            placeholder="今日の様子や気になることを記録"
-            className="mt-4 h-40 w-full resize-none rounded-3xl border p-5 text-lg"
-          />
-
-          <button
-            onClick={saveNote}
-            className="mt-4 w-full rounded-3xl bg-gray-800 p-5 text-xl font-bold text-white active:scale-95"
-          >
-            メモ保存
-          </button>
-        </div>
-
-        <div className="mt-10">
-          <h2 className="mb-5 text-xl font-bold">
             今日の記録
           </h2>
 

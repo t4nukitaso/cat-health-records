@@ -42,3 +42,20 @@ export function getRelativeTime(
 
   return `${days}日前`;
 }
+
+export function createNowISO() {
+  return new Date().toISOString();
+}
+
+export function debounce<T extends (...args: any[]) => any>(func: T, delay: number): T {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return ((...args: Parameters<T>) => {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    timeout = setTimeout(() => {
+      func(...args);
+    }, delay);
+  }) as T;
+}

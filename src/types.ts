@@ -18,6 +18,8 @@ export type RecordItem = {
   weight?: number;
 
   createdAt: string;
+
+  memo?: string;
 };
 
 export type DailyNote = {
