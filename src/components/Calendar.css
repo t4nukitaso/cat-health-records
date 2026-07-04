@@ -52,6 +52,15 @@
   overflow: hidden;
 }
 
+@media (max-width: 430px) {
+  .iphone-calendar
+    .react-calendar__tile {
+    height: 92px;
+    border-radius: 20px;
+    padding-inline: 2px;
+  }
+}
+
 .iphone-calendar
   .react-calendar__tile:active {
   transform: scale(0.96);

@@ -27,6 +27,8 @@ import CalendarScreen from "./components/CalendarScreen";
 
 import DayDetailScreen from "./components/DayDetailScreen";
 
+import "./App.css";
+
 import type {
   RecordItem,
   DailyNote,

@@ -15,6 +15,45 @@
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
 }
 
+button,
+a,
+.memo-display {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.memo-input-overlay {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: max(20px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.memo-input-modal {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 28px;
+}
+
+.memo-textarea-modal,
+.memo-display {
+  border-radius: 20px;
+}
+
+.memo-modal-button {
+  border-radius: 18px;
+}
+
+@media (max-width: 430px) {
+  .memo-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .memo-modal-button {
+    width: 100%;
+  }
+}
+
 .memo-button-add:active {
   transform: scale(0.98);
   background-color: var(--primary-color-dark); /* A slightly darker shade for active state */
@@ -128,4 +167,43 @@
   --primary-color-dark: #005bb5;
   --primary-color-rgb: 0, 122, 255;
   --text-color: #333;
+}
+
+button,
+a,
+.memo-display {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.memo-input-overlay {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  padding: max(20px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(20px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+}
+
+.memo-input-modal {
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: 28px;
+}
+
+.memo-textarea-modal,
+.memo-display {
+  border-radius: 20px;
+}
+
+.memo-modal-button {
+  border-radius: 18px;
+}
+
+@media (max-width: 430px) {
+  .memo-modal-actions {
+    flex-direction: column-reverse;
+  }
+
+  .memo-modal-button {
+    width: 100%;
+  }
 }
