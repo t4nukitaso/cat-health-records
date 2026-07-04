@@ -16,6 +16,9 @@ import {
   deleteDoc,
   updateDoc,
   doc,
+  query,
+  where,
+  getDocs,
 } from "firebase/firestore";
 
 import HomeScreen from "./components/HomeScreen";
@@ -24,13 +27,84 @@ import CalendarScreen from "./components/CalendarScreen";
 
 import DayDetailScreen from "./components/DayDetailScreen";
 
-import type { RecordItem } from "./types";
+import "./App.css";
+
+import type {
+  RecordItem,
+  DailyNote,
+} from "./types";
 
 import { db } from "./firebase";
 
 function App() {
   const [records, setRecords] =
     useState<RecordItem[]>([]);
+
+  const [dailyNotes, setDailyNotes] =
+    useState<DailyNote[]>([]);
+
+  useEffect(() => {
+    function updateDeviceLayout() {
+      const width =
+        window.innerWidth;
+
+      const hasCoarsePointer =
+        window.matchMedia(
+          "(pointer: coarse)"
+        ).matches;
+
+      const userAgent =
+        navigator.userAgent.toLowerCase();
+
+      const platform =
+        userAgent.includes("windows")
+          ? "windows"
+          : userAgent.includes("mac")
+            ? "mac"
+            : userAgent.includes("ipad")
+              ? "ipad"
+              : userAgent.includes("iphone")
+                ? "iphone"
+                : "other";
+
+      const device =
+        width >= 1024 && !hasCoarsePointer
+          ? "desktop"
+          : width >= 700
+            ? "tablet"
+            : "phone";
+
+      document.body.dataset.device =
+        device;
+
+      document.body.dataset.platform =
+        platform;
+    }
+
+    updateDeviceLayout();
+
+    window.addEventListener(
+      "resize",
+      updateDeviceLayout
+    );
+
+    window.addEventListener(
+      "orientationchange",
+      updateDeviceLayout
+    );
+
+    return () => {
+      window.removeEventListener(
+        "resize",
+        updateDeviceLayout
+      );
+
+      window.removeEventListener(
+        "orientationchange",
+        updateDeviceLayout
+      );
+    };
+  }, []);
 
   useEffect(() => {
     const unsubscribe =
@@ -64,13 +138,41 @@ function App() {
     return () => unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const unsubscribe =
+      onSnapshot(
+        collection(db, "dailyNotes"),
+        (snapshot) => {
+          const loadedNotes =
+            snapshot.docs.map((d) => {
+              return {
+                firebaseId: d.id,
+                ...d.data(),
+              };
+            }) as DailyNote[];
+
+          setDailyNotes(
+            loadedNotes
+          );
+        }
+      );
+
+    return () => unsubscribe();
+  }, []);
+
   async function addRecord(
     record: RecordItem
   ) {
-    await addDoc(
-      collection(db, "records"),
-      record
-    );
+    console.log("Attempting to add record:", record);
+    try {
+      const docRef = await addDoc(
+        collection(db, "records"),
+        record
+      );
+      console.log("Record added with ID:", docRef.id);
+    } catch (error) {
+      console.error("Error adding record:", error);
+    }
   }
 
   async function deleteRecord(
@@ -99,6 +201,48 @@ function App() {
     );
   }
 
+  async function saveDailyNote(
+    date: string,
+    note: string
+  ) {
+    const q = query(
+      collection(db, "dailyNotes"),
+      where("date", "==", date)
+    );
+
+    const snapshot =
+      await getDocs(q);
+
+    if (
+      snapshot.docs.length > 0
+    ) {
+      const existingDoc =
+        snapshot.docs[0];
+
+      await updateDoc(
+        doc(
+          db,
+          "dailyNotes",
+          existingDoc.id
+        ),
+        {
+          note,
+        }
+      );
+    } else {
+      await addDoc(
+        collection(
+          db,
+          "dailyNotes"
+        ),
+        {
+          date,
+          note,
+        }
+      );
+    }
+  }
+
   return (
     <BrowserRouter>
       <Routes>
@@ -107,9 +251,15 @@ function App() {
           element={
             <HomeScreen
               records={records}
+              dailyNotes={
+                dailyNotes
+              }
               addRecord={addRecord}
               deleteRecord={
                 deleteRecord
+              }
+              saveDailyNote={
+                saveDailyNote
               }
             />
           }
@@ -129,11 +279,18 @@ function App() {
           element={
             <DayDetailScreen
               records={records}
+              dailyNotes={
+                dailyNotes
+              }
+              addRecord={addRecord}
               deleteRecord={
                 deleteRecord
               }
               editRecord={
                 editRecord
+              }
+              saveDailyNote={
+                saveDailyNote
               }
             />
           }
