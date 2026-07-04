@@ -217,6 +217,7 @@ function App() {
               dailyNotes={
                 dailyNotes
               }
+              addRecord={addRecord}
               deleteRecord={
                 deleteRecord
               }

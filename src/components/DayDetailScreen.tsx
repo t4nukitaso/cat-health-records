@@ -19,6 +19,10 @@ type Props = {
 
   dailyNotes: DailyNote[];
 
+  addRecord: (
+    record: RecordItem
+  ) => Promise<void>;
+
   deleteRecord: (
     firebaseId: string
   ) => Promise<void>;
@@ -37,6 +41,7 @@ type Props = {
 function DayDetailScreen({
   records,
   dailyNotes,
+  addRecord,
   deleteRecord,
   editRecord,
   saveDailyNote,
@@ -58,6 +63,21 @@ function DayDetailScreen({
 
   const [isEditingNote, setIsEditingNote] =
     useState(false);
+
+  const [showFoodSelect, setShowFoodSelect] =
+    useState(false);
+
+  const [showSnackSelect, setShowSnackSelect] =
+    useState(false);
+
+  const [selectedSnack, setSelectedSnack] =
+    useState("ちゅーる");
+
+  const [selectedSnackAmount, setSelectedSnackAmount] =
+    useState<number | null>(null);
+
+  const [customSnackName, setCustomSnackName] =
+    useState("");
 
   useEffect(() => {
     const noteForDate =
@@ -197,12 +217,13 @@ function DayDetailScreen({
     const updatedData: Partial<RecordItem> =
       {};
 
-    if (
-      record.type === "weight"
-    ) {
+    if (record.type === "weight") {
       updatedData.weight =
         Number(editAmount);
-    } else {
+    } else if (
+      record.type === "food" ||
+      record.type === "snack"
+    ) {
       updatedData.amount =
         Number(editAmount);
     }
@@ -244,6 +265,103 @@ function DayDetailScreen({
     setEditAmount("");
 
     setEditTime("");
+  }
+
+  function createRecordId() {
+    return Date.now();
+  }
+
+  function createSelectedDateISO() {
+    const now = new Date();
+
+    const [
+      year,
+      month,
+      day,
+    ] = date!
+      .split("-")
+      .map(Number);
+
+    return new Date(
+      year,
+      month - 1,
+      day,
+      now.getHours(),
+      now.getMinutes()
+    ).toISOString();
+  }
+
+  async function addFood(
+    amount: number
+  ) {
+    try {
+      await addRecord({
+        id: createRecordId(),
+        type: "food",
+        amount,
+        createdAt:
+          createSelectedDateISO(),
+      });
+
+      setShowFoodSelect(false);
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async function addSnack() {
+    try {
+      if (selectedSnackAmount === null) {
+        alert("数量を選択してください");
+        return;
+      }
+
+      if (
+        selectedSnack === "その他" &&
+        !customSnackName.trim()
+      ) {
+        alert(
+          "おやつ名を入力してください"
+        );
+        return;
+      }
+
+      await addRecord({
+        id: createRecordId(),
+        type: "snack",
+        amount: selectedSnackAmount,
+        snackType: selectedSnack,
+        customSnackName:
+          selectedSnack === "その他"
+            ? customSnackName.trim()
+            : "",
+        createdAt:
+          createSelectedDateISO(),
+      });
+
+      setSelectedSnack("ちゅーる");
+      setSelectedSnackAmount(null);
+      setCustomSnackName("");
+      setShowSnackSelect(false);
+    } catch (error) {
+      console.error(
+        "おやつ保存エラー",
+        error
+      );
+    }
+  }
+
+  async function addPoop() {
+    try {
+      await addRecord({
+        id: createRecordId(),
+        type: "poop",
+        createdAt:
+          createSelectedDateISO(),
+      });
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   return (
@@ -348,6 +466,137 @@ function DayDetailScreen({
           )}
         </div>
 
+        <div className="mt-5 grid grid-cols-3 gap-3">
+          <button
+            onClick={() => {
+              setShowFoodSelect(
+                !showFoodSelect
+              );
+              setShowSnackSelect(false);
+            }}
+            className="rounded-2xl bg-blue-500 p-4 text-white shadow-md active:scale-95"
+          >
+            ごはん
+          </button>
+
+          <button
+            onClick={() => {
+              setShowSnackSelect(
+                !showSnackSelect
+              );
+              setShowFoodSelect(false);
+            }}
+            className="rounded-2xl bg-pink-500 p-4 text-white shadow-md active:scale-95"
+          >
+            おやつ
+          </button>
+
+          <button
+            onClick={addPoop}
+            className="rounded-2xl bg-green-500 p-4 text-white shadow-md active:scale-95"
+          >
+            うんち
+          </button>
+        </div>
+
+        {showFoodSelect && (
+          <div className="mt-4 rounded-3xl bg-gray-100 p-4">
+            <h2 className="font-bold">
+              ごはん量選択
+            </h2>
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {[0.5, 1, 1.5, 2].map(
+                (amount) => (
+                  <button
+                    key={amount}
+                    onClick={() =>
+                      addFood(amount)
+                    }
+                    className="rounded-2xl bg-blue-500 p-4 text-white active:scale-95"
+                  >
+                    {amount}
+                  </button>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
+        {showSnackSelect && (
+          <div className="mt-4 rounded-3xl bg-gray-100 p-4">
+            <h2 className="font-bold">
+              おやつ選択
+            </h2>
+
+            <div className="mt-4 space-y-2">
+              {[
+                "ちゅーる",
+                "ぽんちゅーる",
+                "その他",
+              ].map((snack) => (
+                <button
+                  key={snack}
+                  onClick={() =>
+                    setSelectedSnack(
+                      snack
+                    )
+                  }
+                  className={`w-full rounded-2xl p-4 text-white active:scale-95 ${
+                    selectedSnack === snack
+                      ? "bg-pink-600"
+                      : "bg-pink-400"
+                  }`}
+                >
+                  {snack}
+                </button>
+              ))}
+            </div>
+
+            {selectedSnack === "その他" && (
+              <input
+                type="text"
+                placeholder="おやつ名入力"
+                value={customSnackName}
+                onChange={(e) =>
+                  setCustomSnackName(
+                    e.target.value
+                  )
+                }
+                className="mt-4 w-full rounded-2xl border p-4"
+              />
+            )}
+
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {[0.5, 1].map((amount) => (
+                <button
+                  key={amount}
+                  onClick={() =>
+                    setSelectedSnackAmount(
+                      amount
+                    )
+                  }
+                  className={`rounded-2xl p-4 text-white active:scale-95 ${
+                    selectedSnackAmount ===
+                    amount
+                      ? "bg-pink-600"
+                      : "bg-pink-400"
+                  }`}
+                >
+                  {amount}
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={addSnack}
+              className="mt-4 w-full rounded-2xl bg-pink-500 p-4 text-white active:scale-95"
+            >
+              記録
+            </button>
+          </div>
+        )}
+
         <div className="mt-8 space-y-4">
           {targetRecords.map(
             (record) => {
@@ -420,27 +669,32 @@ function DayDetailScreen({
                     record.type ===
                       "snack" ||
                     record.type ===
+                      "poop" ||
+                    record.type ===
                       "weight") && (
                     <div className="mt-4">
                       {editingId ===
                       record.id ? (
                         <div className="space-y-3">
-                          <input
-                            type="number"
-                            step="0.1"
-                            value={
-                              editAmount
-                            }
-                            onChange={(
-                              e
-                            ) =>
-                              setEditAmount(
-                                e.target
-                                  .value
-                              )
-                            }
-                            className="w-full rounded-2xl border p-3"
-                          />
+                          {record.type !==
+                            "poop" && (
+                            <input
+                              type="number"
+                              step="0.1"
+                              value={
+                                editAmount
+                              }
+                              onChange={(
+                                e
+                              ) =>
+                                setEditAmount(
+                                  e.target
+                                    .value
+                                )
+                              }
+                              className="w-full rounded-2xl border p-3"
+                            />
+                          )}
 
                           <input
                             type="time"
